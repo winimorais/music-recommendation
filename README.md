@@ -18,8 +18,3 @@ This project is a music recommendation application that allows users to manage t
 - **Spring Boot**
 - **Lombok**
 - **JUnit**
-
-## Project Structure
-
-src ├── main │ ├── java │ │ └── com │ │ └── example │ │ └── app │ │ ├── controller │ │ ├── dto │ │ ├── model │ │ └── service │ └── resources └── test └── java └── com └── example └── app
-
