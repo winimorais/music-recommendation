@@ -26,7 +26,7 @@ public class MusicController {
     public ResponseEntity<String> addSong(@Valid @RequestBody Song song) {
         log.info("Adding song: {}", song.getName());
         musicService.addSong(song);
-        return ResponseEntity.ok("Song added to library.");
+        return buildResponse(201, "Song added to library.");
     }
 
     // Add a user
@@ -34,7 +34,7 @@ public class MusicController {
     public ResponseEntity<String> addUser(@Valid @RequestBody User user) {
         log.info("Adding user: {}", user.getName());
         musicService.addUser(user);
-        return ResponseEntity.ok("User added.");
+        return buildResponse(201, "User added.");
     }
 
     // Add a song to a user's playlist
@@ -42,13 +42,15 @@ public class MusicController {
     public ResponseEntity<String> addSongToPlaylist(
             @Valid @PathVariable String username, @RequestBody Map<String, String> songRequest) {
         String songName = songRequest.get("name");
-        if (songName == null || songName.isEmpty()) {
+
+        if (isInvalidSongName(songName)) {
             log.error("Invalid song name in request body.");
-            return ResponseEntity.badRequest().body("Invalid song name.");
+            return buildResponse(400, "Invalid song name.");
         }
+
         log.info("Adding song '{}' to user '{}' playlist.", songName, username);
         musicService.addSongToPlaylist(username, songName);
-        return ResponseEntity.ok("Song added to playlist.");
+        return buildResponse(201, "Song added to playlist.");
     }
 
     // Retrieve a user's playlist
@@ -56,6 +58,7 @@ public class MusicController {
     public ResponseEntity<Set<Song>> getPlaylist(@PathVariable String username) {
         log.info("Fetching playlist for user '{}'", username);
         User user = musicService.getUser(username);
+
         if (user != null) {
             log.info("User '{}' found. Returning playlist.", username);
             return ResponseEntity.ok(user.getPlaylist());
@@ -74,4 +77,13 @@ public class MusicController {
         return ResponseEntity.ok(recommendations);
     }
 
+    // Helper Methods
+
+    private ResponseEntity<String> buildResponse(int statusCode, String message) {
+        return ResponseEntity.status(statusCode).body(message);
+    }
+
+    private boolean isInvalidSongName(String songName) {
+        return songName == null || songName.isEmpty();
+    }
 }

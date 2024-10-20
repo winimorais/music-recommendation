@@ -8,11 +8,18 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
+import java.util.List;
+
 @SpringBootApplication
 public class MusicApp implements CommandLineRunner {
 
     @Autowired
-    private MusicServiceImpl musicService;
+    private final MusicServiceImpl musicService;
+
+    @Autowired
+    public MusicApp(MusicServiceImpl musicService) {
+        this.musicService = musicService;
+    }
 
     public static void main(String[] args) {
         SpringApplication.run(MusicApp.class, args);
@@ -20,27 +27,62 @@ public class MusicApp implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        // Test 1: Add a user
-        User user1 = new User("User1");
-        musicService.addUser(user1);
+        initializeMusicLibrary();
+    }
 
-        // Test 2: Add a song
-        Song song1 = new Song("Song 1", "Rock", "Artist 1", 180, 2022, 85);
+    private void initializeMusicLibrary() {
+        // Create a user
+        User user = createUser("Zoe");
+
+        // Create and add songs
+        addSongs();
+
+        // Add a song to the user's playlist
+        addSongToUserPlaylist(user.getName(), "In the End");
+
+        // Get and display recommendations for the user
+        displayRecommendations(user.getName());
+
+        // Add more songs and check recommendations again
+        addMoreSongs();
+        displayRecommendations(user.getName());
+    }
+
+    private User createUser(String username) {
+        User user = new User(username);
+        musicService.addUser(user);
+        return user;
+    }
+
+    private void addSongs() {
+        Song song1 = new Song("In the End", "Rock", "Linkin Park", 105, 2000, 95);
+        Song song2 = new Song("Uptown Funk", "Pop", "Bruno Mars", 105, 2014, 95);
+        Song song3 = new Song("Numb", "Rock", "Linkin Park", 105, 2000, 95);
+        Song song4 = new Song("24K Magic", "Pop", "Bruno Mars", 105, 2016, 90);
+        Song song5 = new Song("Beautiful", "Hip Hop", "Snoop Dogg", 90, 2006, 85);
+
         musicService.addSong(song1);
-
-        // Test 3: Add the song to the user's playlist
-        musicService.addSongToPlaylist(user1.getName(), song1.getName());
-
-        // Test 4: Attempt to get recommendations for the user
-        var recommendations = musicService.getRecommendations(user1.getName());
-        recommendations.forEach(song -> System.out.println(song.getName()));
-
-        // Test 5: Add a second song and check the recommendations again
-        Song song2 = new Song("Song 2", "Pop", "Artist 2", 200, 2023, 90);
         musicService.addSong(song2);
+        musicService.addSong(song3);
+        musicService.addSong(song4);
+        musicService.addSong(song5);
+    }
 
-        recommendations = musicService.getRecommendations(user1.getName());
+    private void addSongToUserPlaylist(String username, String songName) {
+        musicService.addSongToPlaylist(username, songName);
+    }
+
+    private void displayRecommendations(String username) {
+        List<Song> recommendations = musicService.getRecommendations(username);
+        System.out.println("Recommendations for " + username + ":");
         recommendations.forEach(song -> System.out.println(song.getName()));
     }
-}
 
+    private void addMoreSongs() {
+        Song song6 = new Song("Moon", "Pop", "Bruno Mars", 105, 2016, 90);
+        Song song7 = new Song("Black Vanilla", "Hip Hop", "Snoop Dogg", 99, 2003, 82);
+
+        musicService.addSong(song6);
+        musicService.addSong(song7);
+    }
+}

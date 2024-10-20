@@ -4,7 +4,6 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -22,8 +21,9 @@ public class Song {
     @NotBlank(message = "Singer cannot be empty or null")
     private String singer;
 
-    @Min(value = 1, message = "Time must be greater than 0")
-    private int time;
+    @Min(value = 10, message = "Tempo must be greater than 0")
+    @Max(value = 300, message = "Tempo must be less than or equal to 300")
+    private int tempo;
 
     @Min(value = 1900, message = "Release year must be after 1900")
     private int releaseYear;
