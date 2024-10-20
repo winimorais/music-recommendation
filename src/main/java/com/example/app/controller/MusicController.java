@@ -3,6 +3,7 @@ package com.example.app.controller;
 import com.example.app.model.Song;
 import com.example.app.model.User;
 import com.example.app.service.MusicService;
+import com.example.app.service.UserService;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,20 +22,20 @@ public class MusicController {
     @Autowired
     private MusicService musicService;
 
+    @Autowired
+    private UserService userService;
+
     // Add a song to the music library
     @PostMapping("/songs")
     public ResponseEntity<String> addSong(@Valid @RequestBody Song song) {
+        if (song.getName() == null || song.getName().isEmpty()) {
+            log.error("Invalid song name.");
+            return buildResponse(400, "Invalid song name.");
+        }
+
         log.info("Adding song: {}", song.getName());
         musicService.addSong(song);
         return buildResponse(201, "Song added to library.");
-    }
-
-    // Add a user
-    @PostMapping("/users")
-    public ResponseEntity<String> addUser(@Valid @RequestBody User user) {
-        log.info("Adding user: {}", user.getName());
-        musicService.addUser(user);
-        return buildResponse(201, "User added.");
     }
 
     // Add a song to a user's playlist
@@ -57,7 +58,7 @@ public class MusicController {
     @GetMapping("/users/{username}/playlist")
     public ResponseEntity<Set<Song>> getPlaylist(@PathVariable String username) {
         log.info("Fetching playlist for user '{}'", username);
-        User user = musicService.getUser(username);
+        User user = userService.getUser(username);
 
         if (user != null) {
             log.info("User '{}' found. Returning playlist.", username);

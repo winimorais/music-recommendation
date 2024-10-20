@@ -4,20 +4,23 @@ import com.example.app.controller.MusicController;
 import com.example.app.model.Song;
 import com.example.app.model.User;
 import com.example.app.service.MusicService;
+import com.example.app.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.springframework.http.ResponseEntity;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
-public class MusicControllerTest {
+class MusicControllerTest {
 
     @InjectMocks
     private MusicController musicController;
@@ -25,102 +28,102 @@ public class MusicControllerTest {
     @Mock
     private MusicService musicService;
 
+    @Mock
+    private UserService userService;
+
+    private User user;
+
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         MockitoAnnotations.openMocks(this);
+        user = new User("User1", new HashSet<>(), new HashSet<>());
+        when(userService.getUser("User1")).thenReturn(user);
     }
 
     @Test
-    public void testAddSong() {
-        Song song = new Song("Song 1", "Artist", "Pop", 5, 2024, 50);
+    void testAddSong_ValidSong() {
+        Song song = new Song("Song 1", "Rock", "Artist 1", 180, 2022, 85);
+        doNothing().when(musicService).addSong(song);
 
-        ResponseEntity<String> response = musicController.addSong(song);
+        Map<String, String> songRequest = new HashMap<>();
+        songRequest.put("name", song.getName());
 
-        assertEquals(200, response.getStatusCodeValue());
+        var response = musicController.addSong(song);
+
+        assertEquals(201, response.getStatusCodeValue());
         assertEquals("Song added to library.", response.getBody());
         verify(musicService, times(1)).addSong(song);
     }
 
     @Test
-    public void testAddUser() {
-        User user = new User("User 1");
+    void testAddSong_InvalidSong() {
+        Song invalidSong = new Song("", "Rock", "Artist 1", 180, 2022, 85);
 
-        ResponseEntity<String> response = musicController.addUser(user);
+        var response = musicController.addSong(invalidSong);
 
-        assertEquals(200, response.getStatusCodeValue());
-        assertEquals("User added.", response.getBody());
-        verify(musicService, times(1)).addUser(user);
+        assertEquals(400, response.getStatusCodeValue());  // Espera que o status seja 400
+        assertEquals("Invalid song name.", response.getBody());  // Espera a mensagem de erro correta
+        verify(musicService, times(0)).addSong(invalidSong);  // Verifica que o serviço não foi chamado
     }
 
+
     @Test
-    public void testAddSongToPlaylist_Valid() {
-        String username = "User 1";
+    void testAddSongToPlaylist_Success() {
+        Song song = new Song("Song 1", "Rock", "Artist 1", 180, 2022, 85);
         Map<String, String> songRequest = new HashMap<>();
-        songRequest.put("name", "Song 1");
+        songRequest.put("name", song.getName());
+        doNothing().when(musicService).addSongToPlaylist("User1", song.getName());
 
-        when(musicService.getUser(username)).thenReturn(new User(username));
+        var response = musicController.addSongToPlaylist("User1", songRequest);
 
-        ResponseEntity<String> response = musicController.addSongToPlaylist(username, songRequest);
-
-        assertEquals(200, response.getStatusCodeValue());
+        assertEquals(201, response.getStatusCodeValue());
         assertEquals("Song added to playlist.", response.getBody());
-        verify(musicService, times(1)).addSongToPlaylist(username, "Song 1");
+        verify(musicService, times(1)).addSongToPlaylist("User1", song.getName());
     }
 
     @Test
-    public void testAddSongToPlaylist_InvalidSongName() {
-        String username = "User 1";
+    void testAddSongToPlaylist_InvalidSong() {
         Map<String, String> songRequest = new HashMap<>();
         songRequest.put("name", "");
 
-        ResponseEntity<String> response = musicController.addSongToPlaylist(username, songRequest);
+        var response = musicController.addSongToPlaylist("User1", songRequest);
 
         assertEquals(400, response.getStatusCodeValue());
         assertEquals("Invalid song name.", response.getBody());
-        verify(musicService, never()).addSongToPlaylist(any(), any());
+        verify(musicService, times(0)).addSongToPlaylist(anyString(), anyString());
     }
 
     @Test
-    public void testGetPlaylist_UserFound() {
-        String username = "User 1";
-        User user = new User(username);
-        user.setPlaylist(new HashSet<>(Arrays.asList(new Song("Song 1", "Artist", "Pop", 5, 2024, 50))));
+    void testGetPlaylist_UserFound() {
+        user.getPlaylist().add(new Song("Song 1", "Rock", "Artist 1", 180, 2022, 85));
 
-        when(musicService.getUser(username)).thenReturn(user);
-
-        ResponseEntity<Set<Song>> response = musicController.getPlaylist(username);
+        var response = musicController.getPlaylist("User1");
 
         assertEquals(200, response.getStatusCodeValue());
-        assertNotNull(response.getBody());
-        assertEquals(1, response.getBody().size());
-        verify(musicService, times(1)).getUser(username);
+        assertTrue(response.getBody().contains(new Song("Song 1", "Rock", "Artist 1", 180, 2022, 85)));
+        verify(userService, times(1)).getUser("User1");
     }
 
     @Test
-    public void testGetPlaylist_UserNotFound() {
-        String username = "User 1";
+    void testGetPlaylist_UserNotFound() {
+        when(userService.getUser("UnknownUser")).thenReturn(null);
 
-        when(musicService.getUser(username)).thenReturn(null);
-
-        ResponseEntity<Set<Song>> response = musicController.getPlaylist(username);
+        var response = musicController.getPlaylist("UnknownUser");
 
         assertEquals(404, response.getStatusCodeValue());
-        assertNull(response.getBody());
-        verify(musicService, times(1)).getUser(username);
+        verify(userService, times(1)).getUser("UnknownUser");
     }
 
     @Test
-    public void testGetRecommendations() {
-        String username = "User 1";
-        List<Song> recommendations = Arrays.asList(new Song("Song 2", "Artist", "Pop", 5, 2024, 80));
+    void testGetRecommendations() {
+        List<Song> recommendations = List.of(new Song("Song 1", "Rock", "Artist 1", 180, 2022, 85));
+        when(musicService.getRecommendations("User1")).thenReturn(recommendations);
 
-        when(musicService.getRecommendations(username)).thenReturn(recommendations);
-
-        ResponseEntity<List<Song>> response = musicController.getRecommendations(username);
+        var response = musicController.getRecommendations("User1");
 
         assertEquals(200, response.getStatusCodeValue());
-        assertEquals(1, response.getBody().size());
-        assertEquals("Song 2", response.getBody().get(0).getName());
-        verify(musicService, times(1)).getRecommendations(username);
+        assertEquals(recommendations, response.getBody());
+        verify(musicService, times(1)).getRecommendations("User1");
     }
 }
+

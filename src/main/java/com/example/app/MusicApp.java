@@ -3,6 +3,7 @@ package com.example.app;
 import com.example.app.model.Song;
 import com.example.app.model.User;
 import com.example.app.service.MusicServiceImpl;
+import com.example.app.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
@@ -14,12 +15,10 @@ import java.util.List;
 public class MusicApp implements CommandLineRunner {
 
     @Autowired
-    private final MusicServiceImpl musicService;
+    private MusicServiceImpl musicService;
 
     @Autowired
-    public MusicApp(MusicServiceImpl musicService) {
-        this.musicService = musicService;
-    }
+    private UserService userService;
 
     public static void main(String[] args) {
         SpringApplication.run(MusicApp.class, args);
@@ -34,14 +33,23 @@ public class MusicApp implements CommandLineRunner {
         // Create a user
         User user = createUser("Zoe");
 
+        // Create a new user
+        User newUser = createUser("Wini");
+
         // Create and add songs
         addSongs();
 
         // Add a song to the user's playlist
         addSongToUserPlaylist(user.getName(), "In the End");
 
+        // Existing user adds the new user as a friend
+        addFriend(user.getName(), newUser.getName());
+
         // Get and display recommendations for the user
         displayRecommendations(user.getName());
+
+        // Display friends of the existing user
+        displayFriends(user.getName());
 
         // Add more songs and check recommendations again
         addMoreSongs();
@@ -50,7 +58,7 @@ public class MusicApp implements CommandLineRunner {
 
     private User createUser(String username) {
         User user = new User(username);
-        musicService.addUser(user);
+        userService.addUser(user);
         return user;
     }
 
@@ -70,6 +78,16 @@ public class MusicApp implements CommandLineRunner {
 
     private void addSongToUserPlaylist(String username, String songName) {
         musicService.addSongToPlaylist(username, songName);
+    }
+
+    private void addFriend(String username, String friendName) {
+        userService.addFriend(username, friendName);
+    }
+
+    private void displayFriends(String username) {
+        List<User> friends = userService.getFriends(username);
+        System.out.println("Friends of " + username + ":");
+        friends.forEach(friend -> System.out.println(friend.getName()));
     }
 
     private void displayRecommendations(String username) {
