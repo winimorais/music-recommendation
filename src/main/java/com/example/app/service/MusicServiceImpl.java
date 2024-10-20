@@ -3,6 +3,7 @@ package com.example.app.service;
 import com.example.app.model.Song;
 import com.example.app.model.User;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -14,8 +15,10 @@ import java.util.Map;
 @Service
 public class MusicServiceImpl implements MusicService {
 
+    @Autowired
+    private UserService userService;
+
     private final Map<String, Song> songsLibrary = new HashMap<>();
-    private final Map<String, User> users = new HashMap<>();
 
     @Override
     public void addSong(Song song) {
@@ -25,15 +28,8 @@ public class MusicServiceImpl implements MusicService {
     }
 
     @Override
-    public void addUser(User user) {
-        validateUserInput(user);
-        users.put(user.getName(), user);
-        log.info("User '{}' added.", user.getName());
-    }
-
-    @Override
     public void addSongToPlaylist(String username, String songName) {
-        User user = validateUser(username);
+        User user = userService.getUser(username);
         Song song = validateSong(songName);
 
         if (!user.getPlaylist().contains(song)) {
@@ -45,13 +41,8 @@ public class MusicServiceImpl implements MusicService {
     }
 
     @Override
-    public User getUser(String username) {
-        return validateUser(username);
-    }
-
-    @Override
     public List<Song> getRecommendations(String username) {
-        User user = validateUser(username);
+        User user = userService.getUser(username);
         List<Song> recommendations = new ArrayList<>();
         Map<Song, Double> similarityIndexMap = new HashMap<>();
 
@@ -75,13 +66,6 @@ public class MusicServiceImpl implements MusicService {
         }
     }
 
-    private void validateUserInput(User user) {
-        if (user == null || user.getName() == null || user.getName().isEmpty()) {
-            log.error("Invalid user data: user is null or has an empty name.");
-            throw new IllegalArgumentException("User name cannot be null or empty.");
-        }
-    }
-
     private double calculateSimilarityIndex(Song song, User user) {
         int totalAttributes = 5;
         int totalSimilarities = 0;
@@ -89,7 +73,8 @@ public class MusicServiceImpl implements MusicService {
         for (Song playlistSong : user.getPlaylist()) {
             int commonAttributes = calculateCommonAttributes(song, playlistSong);
             totalSimilarities += commonAttributes;
-            System.out.println("song name: " + song.getName() + " | common attributes with '" + playlistSong.getName() + "': " + commonAttributes);        }
+            System.out.println("song name: " + song.getName() + " | common attributes with '" + playlistSong.getName() + "': " + commonAttributes);
+        }
 
         return user.getPlaylist().isEmpty() ? 0 : (double) totalSimilarities / (totalAttributes * user.getPlaylist().size());
     }
@@ -104,15 +89,6 @@ public class MusicServiceImpl implements MusicService {
         if (song.getReleaseYear() == playlistSong.getReleaseYear()) commonAttributes++;
 
         return commonAttributes;
-    }
-
-    private User validateUser(String username) {
-        User user = users.get(username);
-        if (user == null) {
-            log.error("User '{}' not found.", username);
-            throw new IllegalArgumentException("User '" + username + "' not found.");
-        }
-        return user;
     }
 
     private Song validateSong(String songName) {
