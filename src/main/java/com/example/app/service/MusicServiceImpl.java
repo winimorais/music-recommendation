@@ -15,10 +15,9 @@ import java.util.Map;
 @Service
 public class MusicServiceImpl implements MusicService {
 
+    private final Map<String, Song> songsLibrary = new HashMap<>();
     @Autowired
     private UserService userService;
-
-    private final Map<String, Song> songsLibrary = new HashMap<>();
 
     @Override
     public void addSong(Song song) {
